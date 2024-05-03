@@ -254,25 +254,15 @@ def dice_loss(pred, target, smooth=1.):
 
     return loss.mean()
 
-def jaccard_index(pred, target):
-    pred = pred.float()
-    target = target.float()
-    intersection = torch.sum(pred * target)
-    union = torch.sum(pred) + torch.sum(target) - intersection
-    jaccard = (intersection + 1e-7) / (union + 1e-7)  # Add a small epsilon to avoid division by zero
-    return jaccard
-
 
 def calc_loss(pred, target, metrics, bce_weight=0.5):
     bce = F.binary_cross_entropy_with_logits(pred, target)
 
     pred = F.sigmoid(pred)
- 
     dice = dice_loss(pred, target)
-    jaccard = jaccard_index(pred, target)
 
     loss = bce * bce_weight + dice * (1 - bce_weight)
-    metrics['jaccard'] += jaccard.data.cpu().numpy() * target.size(0)
+
     metrics['bce'] += bce.data.cpu().numpy() * target.size(0)
     metrics['dice'] += dice.data.cpu().numpy() * target.size(0)
     metrics['loss'] += loss.data.cpu().numpy() * target.size(0)
