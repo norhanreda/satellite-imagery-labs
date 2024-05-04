@@ -355,6 +355,9 @@ def train_model(model, optimizer, scheduler, num_epochs=25):
 
 
 def run(UNet):
+    np.random.seed(27)
+    # Set seed for Python's built-in random module
+    random.seed(27)
     num_class = 6
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
