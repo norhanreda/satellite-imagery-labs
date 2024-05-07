@@ -12,6 +12,7 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 import time
 import copy
+from sklearn.metrics import jaccard_score
 
 
 def generate_random_data(height, width, count):
@@ -254,13 +255,22 @@ def dice_loss(pred, target, smooth=1.):
 
     return loss.mean()
 
+# def jaccard_index(pred, target):
+#     pred = pred.float()
+#     target = target.float()
+#     intersection = torch.sum(pred * target)
+#     union = torch.sum(pred) + torch.sum(target) - intersection
+#     jaccard = (intersection + 1e-7) / (union + 1e-7)  # Add a small epsilon to avoid division by zero
+#     return jaccard
+
 def jaccard_index(pred, target):
-    pred = pred.float()
-    target = target.float()
-    intersection = torch.sum(pred * target)
-    union = torch.sum(pred) + torch.sum(target) - intersection
-    jaccard = (intersection + 1e-7) / (union + 1e-7)  # Add a small epsilon to avoid division by zero
-    return jaccard
+    pred = pred.float().view(-1).cpu().detach().numpy()
+    target = target.float().view(-1).cpu().detach().numpy()
+    pred = np.where(pred > 0.5, 1, 0)
+
+    return 1-jaccard_score(target, pred,zero_division=0)
+
+
 
 
 def calc_loss(pred, target, metrics, bce_weight=0.5):
@@ -272,7 +282,7 @@ def calc_loss(pred, target, metrics, bce_weight=0.5):
     jaccard = jaccard_index(pred, target)
 
     loss = bce * bce_weight + dice * (1 - bce_weight)
-    metrics['jaccard'] += jaccard.data.cpu().numpy() * target.size(0)
+    metrics['jaccard'] += jaccard * target.size(0)
     metrics['bce'] += bce.data.cpu().numpy() * target.size(0)
     metrics['dice'] += dice.data.cpu().numpy() * target.size(0)
     metrics['loss'] += loss.data.cpu().numpy() * target.size(0)
@@ -354,7 +364,7 @@ def train_model(model, optimizer, scheduler, num_epochs=25):
     return model
 
 
-def run(UNet,learn_rate=1e-4,stp_size=30,gma=0.1,epochs=20):
+def run(UNet,learn_rate=1e-3,stp_size=30,gma=0.1,epochs=20):
     np.random.seed(27)
     # Set seed for Python's built-in random module
     random.seed(27)
