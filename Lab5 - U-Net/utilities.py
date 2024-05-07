@@ -354,7 +354,7 @@ def train_model(model, optimizer, scheduler, num_epochs=25):
     return model
 
 
-def run(UNet):
+def run(UNet,learn_rate=1e-4,stp_size=30,gma=0.1,epochs=20):
     np.random.seed(27)
     # Set seed for Python's built-in random module
     random.seed(27)
@@ -364,11 +364,11 @@ def run(UNet):
 
     model = UNet(num_class).to(device)
 
-    optimizer_ft = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-4)
+    optimizer_ft = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=learn_rate)
 
-    exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=30, gamma=0.1)
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=stp_size, gamma=gma)
 
-    model = train_model(model, optimizer_ft, exp_lr_scheduler, num_epochs=60)
+    model = train_model(model, optimizer_ft, exp_lr_scheduler, num_epochs=epochs)
 
     model.eval()  # Set model to the evaluation mode
 
@@ -387,6 +387,9 @@ def run(UNet):
 
     # Predict
     pred = model(inputs)
+    metrics = defaultdict(float)
+    loss = calc_loss(pred, labels, metrics)
+    print_metrics(metrics,inputs.size(0) , "test")
     # The loss functions include the sigmoid function.
     pred = F.sigmoid(pred)
     pred = pred.data.cpu().numpy()
